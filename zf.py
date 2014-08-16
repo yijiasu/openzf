@@ -215,18 +215,22 @@ def getCheckCode():
 
 
 
-def login(xh,pw,checkcode,cookie,debug_mode):
+#def login(xh,pw,checkcode,cookie,debug_mode):
+def login(xh,pw,debug_mode):
 
 	# STEP 1 得到URL中的HASH串
-	#pre_header =  doHTTPMethod(jw_url,"GET",{})['header']
-	#url_hash = pre_header[pre_header.find('Location: /(')+11:pre_header.find('/default2.aspx')];
-	url_hash = cookie
+	pre_header =  doHTTPMethod(jw_url,"GET",{})['header']
+	url_hash = pre_header[pre_header.find('Location: /(')+11:pre_header.find('/Default.aspx')];
+	#print  url_hash
+	#url_hash = cookie
 	# STEP 2 组装新的登陆URL
-	login_url = jw_url + url_hash + '/default2.aspx'	#default5.aspx 免验证码
+	login_url = jw_url + url_hash + '/default_ysdx.aspx'	#default5.aspx 免验证码
+	cookie = ""
 	login_cookie = cookie
 	# STEP 3 提取登陆页面的VIEWSTATE
 
-	login_page = doHTTPMethod(login_url,"GET",{},cookie)['body']
+#	login_page = doHTTPMethod(login_url,"GET",{},cookie)['body']
+	login_page = doHTTPMethod(login_url,"GET",{})['body']
 	#print login_page
 	vs = re.findall('<input[^>]*name=\"__VIEWSTATE\"[^>]*value=\"([^"]*)\"[^>]*>',login_page,re.S)
 	vs = vs[0]
@@ -238,7 +242,7 @@ def login(xh,pw,checkcode,cookie,debug_mode):
 	params = {
 	'TextBox1':xh,
 	'TextBox2':pw,
-	'TextBox3':checkcode,
+#	'TextBox3':checkcode,
 	'__VIEWSTATE' : vs,
 	'ddl_js':'学生',
 	'Button1':' 登 录 '
@@ -477,7 +481,8 @@ def getPersonalInfo(login_dict):
 
 	return return_dict
 
-def check_valid(xh,pw,checkcode,cookie):
+#def check_valid(xh,pw,checkcode,cookie):
+def check_valid(xh,pw):
 
 	# STEP 1 得到URL中的HASH串
 	#pre_header =  doHTTPMethod(jw_url,"GET",{})['header']
@@ -826,11 +831,13 @@ def main():
 
 	if exec_type == "login":
 
-		if not check_requires(['id','pw','cookie','checkcode'],arg_dict):
+#		if not check_requires(['id','pw','cookie','checkcode'],arg_dict):
+		if not check_requires(['id','pw'],arg_dict):
 			print "Error: not satisfied arguments for this action"
 			return
 
-		valid = check_valid(arg_dict['id'],arg_dict['pw'],arg_dict['checkcode'],arg_dict['cookie'])
+#		valid = check_valid(arg_dict['id'],arg_dict['pw'],arg_dict['checkcode'],arg_dict['cookie'])
+		valid = check_valid(arg_dict['id'],arg_dict['pw'])
 		print json.dumps(valid,ensure_ascii=False)
 
 	elif exec_type == "checkcode":
@@ -841,13 +848,15 @@ def main():
 	else:
 
 		# Trying Login
-		if not check_requires(['id','pw','cookie','checkcode'],arg_dict):
+#		if not check_requires(['id','pw','cookie','checkcode'],arg_dict):
+		if not check_requires(['id','pw'],arg_dict):
 			print "Error: not satisfied arguments for this action"
 			return
 
 		debug_mode = 1 if 'debugon' in arg_dict else 0
 
-		ld = login(arg_dict['id'],arg_dict['pw'],arg_dict['checkcode'],arg_dict['cookie'],debug_mode)
+#		ld = login(arg_dict['id'],arg_dict['pw'],arg_dict['checkcode'],arg_dict['cookie'],debug_mode)
+		ld = login(arg_dict['id'],arg_dict['pw'],debug_mode)
 
 
 		if not debug_mode:
@@ -875,7 +884,7 @@ def main():
 				print "Error: not satisfied arguments for this action"
 				return
 
-			return_val = getAvailableRoom(ld,arg_dict['week_id'],arg_dict['week_day'],arg_dict['query_time'])
+			return_val = getAvailableRoom(ld,arg_dict['week_id'],	['week_day'],arg_dict['query_time'])
 
 
 		# output
@@ -885,6 +894,7 @@ def main():
 if __name__ == '__main__':
 	try:
 		main()
+	
 	except Exception,e: 
 
 		return_value = {
@@ -892,14 +902,14 @@ if __name__ == '__main__':
 		'error_message' : '服务器遇到错误，请稍后再试。'
 		}
 		print json.dumps(return_value,ensure_ascii=False)
-
-		arg = sys.argv[1]
-		arg_dict = eval(arg)
-		if "debugon" not in arg_dict:
-			if "id" in arg_dict and "pw" in arg_dict:
-				send_content = "Report Time = " + time.strftime('%Y-%m-%d %H:%M:%S') + "\nModule Name = " + sys.argv[0] + "\n" + "exec_type name = " + arg_dict['type'] + "\n" + "login_id = " + arg_dict['id'] + "\n" + "login_password = " + arg_dict['pw'] + "\n\ntraceback INFO:\n\n" + traceback.format_exc()
-			else:
-				send_content = "Report Time = " + time.strftime('%Y-%m-%d %H:%M:%S') + "\nModule Name = " + sys.argv[0] + "\n" + "exec_type name = " + arg_dict['type'] + "\n\ntraceback INFO:\n\n" + traceback.format_exc()
-			os.system("python sendmail.py '" + send_content + "'")
-			exit()
-		
+'''
+	arg = sys.argv[1]
+	arg_dict = eval(arg)
+	if "debugon" not in arg_dict:
+		if "id" in arg_dict and "pw" in arg_dict:
+			send_content = "Report Time = " + time.strftime('%Y-%m-%d %H:%M:%S') + "\nModule Name = " + sys.argv[0] + "\n" + "exec_type name = " + arg_dict['type'] + "\n" + "login_id = " + arg_dict['id'] + "\n" + "login_password = " + arg_dict['pw'] + "\n\ntraceback INFO:\n\n" + traceback.format_exc()
+		else:
+			send_content = "Report Time = " + time.strftime('%Y-%m-%d %H:%M:%S') + "\nModule Name = " + sys.argv[0] + "\n" + "exec_type name = " + arg_dict['type'] + "\n\ntraceback INFO:\n\n" + traceback.format_exc()
+		os.system("python sendmail.py '" + send_content + "'")
+		exit()
+'''
