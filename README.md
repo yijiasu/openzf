@@ -11,9 +11,9 @@ an open-source project of zhengfang(正方教务系统) web scraper
 
 2）依赖组件
 
-BeautifulSoup pycurl
+BeautifulSoup4 pycurl
 
-Python版本2.6以上
+Python版本2.6 OR 2.7
 
 3) 如何使用？
 
