@@ -431,55 +431,65 @@ def getScores(login_dict):
 def getPersonalInfo(login_dict):
 
 	# STEP 1 根据登陆得到的Cookie构造信息页面的URL
-
 	# 功能模块代码 N121501  xsgrxx.aspx
 
 	info_page = jw_url + login_dict['hash'] + "/xsgrxx.aspx?xh=" + login_dict['id'] + "&xm=" + make_jw_encode(login_dict['name']) + "&gnmkdm=N121605"
 
-
 	# STEP 2 发起请求，读取信息页面
-
 	info_result = doHTTPMethod(info_page,"GET",{},login_dict['cookie'],make_jw_url("login",login_dict))['body']
-
+	# print info_result.decode('gb2312')
 	# STEP 3 用BS解码
-
 	soup = BeautifulSoup(info_result)
 
-	if 'alert' in soup.text:
-
-		return_value = {
-		'login_status' : 'failed',
-		'error_message' : '您有未完成的教学通知，请在电脑上登陆教务系统完成后方可继续使用该功能！'
-		}
-		return return_value
-
-
 	# STEP 4 挖出数据，组织返回
-
-	return_dict = {
-
-	'student_id' 				: soup.find(id='xh').text,
-	'student_cert_id' 			: soup.find(id='lbl_xszh').text,
-	'student_name'	 			: soup.find(id='xm').text,
-	'student_major_direction' 	: soup.find(id='lbl_zyfx').text,
-	'student_gender' 			: soup.find(id='lbl_xb').text,
-	'student_birthday' 			: soup.find(id='lbl_csrq').text,
-	'student_nationality' 		: soup.find(id='lbl_mz').text,
-	'student_politics_status' 	: soup.find(id='lbl_zzmm').text,
-	'student_origin_area' 		: soup.find(id='lbl_lydq').text,
-	'student_test_no' 			: soup.find(id='lbl_zkzh').text,
-	'student_idcard' 			: soup.find(id='lbl_sfzh').text,
-	'student_education_level' 	: soup.find(id='lbl_CC').text,
-	'student_college'		 	: soup.find(id='lbl_xy').text,
-	'student_major_in'		 	: soup.find(id='xzb').attrs['value'],
-	'student_education_duration': soup.find(id='lbl_xz').text,
-	'student_grade'				: soup.find(id='lbl_dqszj').text
-
-	# 草泥马正方啊 垃圾ID标签
-
+	student = {}
+	TEXT,INPUT,SELECTE = 0,1,2
+	info_to_find = {
+		'ID'			:(TEXT,'xh'),		# 学号
+		'cert_id'		:(INPUT,'xszh'),	# 学生证号
+		'name'			:(TEXT,'xm'),		# 姓名
+		'direction'		:(INPUT,'zyfx'),	# 专业方向
+		'gender'		:(SELECTE,'XB'),	# 性别
+		'birthday'		:(INPUT,'csrq'),	# 出生日期
+		'nationality'	:(SELECTE,'mz'),	# 民族
+		'politics'		:(SELECTE,'zzmm'),	# 政治面貌
+		'origin'		:(INPUT,'lydq'), 	# 来源地区
+		'test_no'		:(INPUT,'zkzh'),	# 准考证号
+		'ID_card'		:(INPUT,'sfzh'),	# 身份证号
+		'endcation'		:(INPUT,'CC'),		# 学历层次
+		'college'		:(INPUT,'xy'),		# 学院
+		'class'			:(INPUT,'xzb'),		# 行政班
+		'duration'		:(INPUT,'xz'),		# 学制
+		'grade'			:(INPUT,'dqszj'),	# 当前所在级
 	}
-
-	return return_dict
+	for attrs in info_to_find:
+		html_type,html_id = info_to_find[attrs]
+		try:
+			if html_type == INPUT : # 获取inputbox里面的值
+				student[attrs] = soup.find(id=html_id).attrs['value']
+			elif html_type == TEXT :# 获取普通span里的文本
+				student[attrs] = soup.find(id=html_id).text
+			elif html_type == SELECTE :# 获取select选项的文本
+				# 返回select下所有option子元素
+				options = soup.find(id=html_id).select('option')
+				for option in options :
+					try :
+						is_there_exception = option.attrs['selected']
+						student[attrs] = option.text
+						break
+					except KeyError :
+						# 无selected属性，出现KeyError，继续查找下一个option
+						continue
+				else : 
+					# 所有option都无selected属性，默认为第一个
+					student[attrs] = options[0].text
+		except Exception,e :
+			# print 'Err:"%s" happened while finding %s for %s.'%(e,info_to_find[attrs],attrs)
+			# print soup.find(id=info_to_find[attrs])
+			student[attrs] = u'抓取失败'
+	# from pprint import pprint
+	# pprint(student)
+	return student
 
 #def check_valid(xh,pw,checkcode,cookie):
 def check_valid(xh,pw):
